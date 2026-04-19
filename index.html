@@ -1,0 +1,1459 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#E05C1A">
+
+  <!-- CSP -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://kdzvreikuyzgocmexflk.supabase.co https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com https://fonts.gstatic.com https://wa.me https://maps.app.goo.gl; img-src 'self' data: https: blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; connect-src 'self' https://kdzvreikuyzgocmexflk.supabase.co https://script.google.com https://script.googleusercontent.com">
+
+  <!-- SEO -->
+  <meta name="description" content="Agenda tu hora en Taller Mecanico Pro. Diagnostico, mantenciones, reparaciones y mas. Confirmacion instantanea.">
+  <meta name="robots" content="index, follow">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Taller Mecanico Pro — Reservas Online">
+  <meta property="og:description" content="Elige tu servicio, mecanico y horario. Confirmacion instantanea. Sin esperas.">
+  <meta property="og:locale" content="es_CL">
+
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🔧%3C/text%3E%3C/svg%3E">
+
+  <title>Taller Mecanico Pro — Reservas Online</title>
+
+  <!-- Fuentes -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Leaflet (mapa) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+
+  <!-- Estilos base -->
+  <link rel="stylesheet" href="styles.css">
+
+  <!-- ══ ESTILOS ERP: Dropdown + Mechanic Cards + Estado Vehiculo ══ -->
+  <style>
+    /* ── Searchable Service Dropdown ─────────────────────────── */
+    .srv-dropdown-wrap {
+      position: relative;
+      margin-bottom: 8px;
+    }
+    .srv-dropdown-btn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--card, #1A2338);
+      border: 2px solid var(--border, #2A3450);
+      border-radius: 12px;
+      padding: 14px 16px;
+      cursor: pointer;
+      font-size: 15px;
+      color: var(--text, #F1F5F9);
+      transition: border-color .2s, box-shadow .2s;
+      user-select: none;
+    }
+    .srv-dropdown-btn:hover,
+    .srv-dropdown-btn.open {
+      border-color: var(--gold, #C9A84C);
+      box-shadow: 0 0 0 3px rgba(201,168,76,.15);
+    }
+    .srv-dropdown-btn .arrow {
+      font-size: 11px;
+      transition: transform .2s;
+      color: var(--muted, #64748b);
+    }
+    .srv-dropdown-btn.open .arrow { transform: rotate(180deg); }
+    .srv-dropdown-panel {
+      display: none;
+      position: absolute;
+      z-index: 200;
+      left: 0; right: 0;
+      top: calc(100% + 6px);
+      background: var(--card, #1A2338);
+      border: 1px solid var(--border, #2A3450);
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.35);
+      overflow: hidden;
+    }
+    .srv-dropdown-panel.open { display: block; }
+    .srv-search-input {
+      width: 100%;
+      padding: 12px 16px;
+      background: var(--bg, #0F1218);
+      border: none;
+      border-bottom: 1px solid var(--border, #2A3450);
+      color: var(--text, #F1F5F9);
+      font-size: 14px;
+      outline: none;
+    }
+    .srv-search-input::placeholder { color: var(--hint, #64748b); }
+    .srv-options {
+      max-height: 280px;
+      overflow-y: auto;
+    }
+    .srv-options::-webkit-scrollbar { width: 5px; }
+    .srv-options::-webkit-scrollbar-track { background: transparent; }
+    .srv-options::-webkit-scrollbar-thumb { background: var(--border, #2A3450); border-radius: 3px; }
+    .srv-opt-cat {
+      padding: 6px 16px 4px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--gold, #C9A84C);
+      background: rgba(201,168,76,.06);
+      border-top: 1px solid var(--border, #2A3450);
+    }
+    .srv-opt-cat:first-child { border-top: none; }
+    .srv-opt-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 11px 16px;
+      cursor: pointer;
+      transition: background .15s;
+      font-size: 14px;
+      color: var(--text, #F1F5F9);
+      gap: 12px;
+    }
+    .srv-opt-item:hover { background: rgba(255,255,255,.05); }
+    .srv-opt-item.selected { background: rgba(201,168,76,.12); color: var(--gold, #C9A84C); }
+    .srv-opt-item .srv-opt-name { flex: 1; }
+    .srv-opt-meta {
+      display: flex;
+      gap: 10px;
+      flex-shrink: 0;
+      font-size: 12px;
+      color: var(--muted, #64748b);
+    }
+    .srv-opt-price {
+      font-weight: 700;
+      color: var(--gold-lt, #E9D17A);
+      font-size: 13px;
+    }
+    .srv-empty {
+      padding: 20px 16px;
+      text-align: center;
+      color: var(--hint, #64748b);
+      font-size: 13px;
+    }
+
+    /* Chip resumen del servicio seleccionado (debajo del dropdown) */
+    .srv-selected-chip {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      background: rgba(201,168,76,.1);
+      border: 1px solid rgba(201,168,76,.3);
+      border-radius: 10px;
+      padding: 10px 14px;
+      margin-top: 8px;
+      font-size: 13px;
+      color: var(--gold, #C9A84C);
+    }
+    .srv-selected-chip.visible { display: flex; }
+    .srv-selected-chip .chip-name { font-weight: 600; flex: 1; }
+    .srv-selected-chip .chip-clear {
+      cursor: pointer;
+      color: var(--muted, #64748b);
+      font-size: 16px;
+      line-height: 1;
+      padding: 0 4px;
+    }
+    .srv-selected-chip .chip-clear:hover { color: var(--danger, #EF4444); }
+
+    /* ── Mechanic Cards ───────────────────────────────────────── */
+    .mecanico-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 12px;
+      margin-top: 6px;
+    }
+    .mecanico-card {
+      background: var(--card, #1A2338);
+      border: 2px solid var(--border, #2A3450);
+      border-radius: 14px;
+      padding: 16px 12px 12px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .2s, transform .15s, box-shadow .2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .mecanico-card:hover {
+      border-color: var(--gold, #C9A84C);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0,0,0,.25);
+    }
+    .mecanico-card.selected {
+      border-color: var(--gold, #C9A84C);
+      background: rgba(201,168,76,.08);
+      box-shadow: 0 0 0 3px rgba(201,168,76,.2), 0 6px 20px rgba(0,0,0,.2);
+    }
+    .mecanico-card .selected-badge {
+      display: none;
+      position: absolute;
+      top: 8px; right: 8px;
+      background: var(--gold, #C9A84C);
+      color: #000;
+      border-radius: 50%;
+      width: 20px; height: 20px;
+      font-size: 11px;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+    }
+    .mecanico-card.selected .selected-badge { display: flex; }
+    .mecanico-foto {
+      width: 68px; height: 68px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin: 0 auto 10px;
+      display: block;
+      border: 3px solid var(--border, #2A3450);
+      transition: border-color .2s;
+    }
+    .mecanico-card.selected .mecanico-foto { border-color: var(--gold, #C9A84C); }
+    .mecanico-foto-placeholder {
+      width: 68px; height: 68px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 10px;
+      font-size: 28px;
+      border: 3px solid var(--border, #2A3450);
+      transition: border-color .2s;
+    }
+    .mecanico-card.selected .mecanico-foto-placeholder { border-color: var(--gold, #C9A84C); }
+    .mecanico-nombre {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text, #F1F5F9);
+      margin-bottom: 4px;
+      line-height: 1.3;
+    }
+    .mecanico-especialidad {
+      font-size: 11px;
+      color: var(--muted, #64748b);
+      line-height: 1.3;
+    }
+
+    /* ── Seccion Estado del Vehiculo ─────────────────────────── */
+    #estado-vehiculo {
+      max-width: 860px;
+      margin: 56px auto 0;
+      padding: 0 24px;
+    }
+    .estado-card {
+      background: var(--card, #1A2338);
+      border: 1px solid var(--border, #2A3450);
+      border-radius: 20px;
+      padding: 32px;
+    }
+    .estado-form-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+    .estado-form-row input {
+      flex: 1;
+      min-width: 180px;
+      background: var(--bg, #0F1218);
+      border: 1.5px solid var(--border, #2A3450);
+      border-radius: 10px;
+      color: var(--text, #F1F5F9);
+      padding: 12px 16px;
+      font-size: 15px;
+      outline: none;
+      transition: border-color .2s;
+    }
+    .estado-form-row input:focus { border-color: var(--gold, #C9A84C); }
+    .btn-consultar {
+      background: linear-gradient(135deg, var(--gold, #C9A84C), var(--gold-lt, #E9D17A));
+      color: #000;
+      border: none;
+      border-radius: 10px;
+      padding: 12px 28px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity .2s, transform .15s;
+      white-space: nowrap;
+    }
+    .btn-consultar:hover { opacity: .9; transform: translateY(-1px); }
+    .btn-consultar:active { transform: translateY(0); }
+    #estado-resultado {
+      margin-top: 24px;
+    }
+    .estado-timeline {
+      border-left: 3px solid var(--border, #2A3450);
+      margin-left: 12px;
+      padding-left: 20px;
+    }
+    .estado-step {
+      position: relative;
+      margin-bottom: 16px;
+    }
+    .estado-step::before {
+      content: '';
+      position: absolute;
+      left: -27px;
+      top: 4px;
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      background: var(--border, #2A3450);
+      border: 2px solid var(--bg, #0F1218);
+    }
+    .estado-step.activo::before { background: var(--gold, #C9A84C); }
+    .estado-step.completado::before { background: var(--success, #22C55E); }
+    .estado-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .badge-confirmada  { background: rgba(34,197,94,.15);  color: #22C55E; }
+    .badge-en-curso    { background: rgba(245,158,11,.15);  color: #F59E0B; }
+    .badge-completada  { background: rgba(59,130,246,.15);  color: #3B82F6; }
+    .badge-cancelada   { background: rgba(239,68,68,.15);   color: #EF4444; }
+    .garantia-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-top: 6px;
+    }
+    .garantia-vigente  { background: rgba(34,197,94,.15);  color: #22C55E;  border: 1px solid rgba(34,197,94,.3); }
+    .garantia-vencida  { background: rgba(239,68,68,.1);   color: #EF4444;  border: 1px solid rgba(239,68,68,.3); }
+    .estado-fotos-grid {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+    .estado-foto-thumb {
+      width: 80px; height: 80px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 2px solid var(--border, #2A3450);
+      cursor: pointer;
+      transition: transform .15s;
+    }
+    .estado-foto-thumb:hover { transform: scale(1.05); }
+
+    /* ── Encuesta Satisfaccion ────────────────────────────────── */
+    .survey-section {
+      background: var(--card, #1A2338);
+      border: 1px solid var(--border, #2A3450);
+      border-radius: 16px;
+      padding: 28px 24px;
+      margin-top: 20px;
+      text-align: center;
+    }
+    .survey-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text, #F1F5F9);
+      margin-bottom: 6px;
+    }
+    .survey-subtitle {
+      font-size: 13px;
+      color: var(--muted, #64748b);
+      margin-bottom: 18px;
+    }
+    .survey-btns {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+    }
+    .survey-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border: 2px solid var(--border, #2A3450);
+      background: transparent;
+      border-radius: 12px;
+      padding: 14px 28px;
+      font-size: 32px;
+      cursor: pointer;
+      transition: all .2s;
+      color: var(--text, #F1F5F9);
+    }
+    .survey-btn:hover { transform: scale(1.08); }
+    .survey-btn.positivo:hover,
+    .survey-btn.positivo.selected {
+      border-color: #22C55E;
+      background: rgba(34,197,94,.12);
+    }
+    .survey-btn.negativo:hover,
+    .survey-btn.negativo.selected {
+      border-color: #EF4444;
+      background: rgba(239,68,68,.12);
+    }
+    .survey-comment {
+      margin-top: 12px;
+    }
+    .survey-comment textarea {
+      width: 100%;
+      max-width: 400px;
+      background: var(--bg, #0F1218);
+      border: 1.5px solid var(--border, #2A3450);
+      border-radius: 10px;
+      color: var(--text, #F1F5F9);
+      padding: 10px 14px;
+      font-size: 13px;
+      font-family: inherit;
+      resize: vertical;
+      outline: none;
+    }
+    .survey-comment textarea:focus { border-color: var(--gold, #C9A84C); }
+    .survey-thanks {
+      display: none;
+      padding: 16px;
+      background: rgba(34,197,94,.1);
+      border: 1px solid rgba(34,197,94,.25);
+      border-radius: 10px;
+      margin-top: 12px;
+      color: #22C55E;
+      font-weight: 600;
+    }
+
+    /* ── Confirmation Modal ──────────────────────────────────── */
+    .conf-modal-back {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.7);
+      z-index: 9000;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      overflow-y: auto;
+    }
+    .conf-modal-back.open { display: flex; }
+    .conf-modal {
+      background: var(--card, #1A2338);
+      border: 1px solid var(--border, #2A3450);
+      border-radius: 20px;
+      padding: 32px 28px;
+      max-width: 520px;
+      width: 100%;
+      text-align: center;
+      position: relative;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .conf-modal .conf-icon { font-size: 52px; margin-bottom: 12px; }
+    .conf-modal h2 { font-size: 22px; font-weight: 800; margin-bottom: 8px; color: var(--text); }
+    .conf-modal .conf-id {
+      font-size: 20px; font-weight: 800; letter-spacing: 2px;
+      color: var(--gold); margin-bottom: 16px;
+    }
+    .conf-modal .conf-detalles {
+      text-align: left;
+      margin: 16px 0;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .conf-modal .conf-item {
+      display: flex; justify-content: space-between;
+      padding: 10px 16px; font-size: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .conf-modal .conf-item:last-child { border-bottom: none; }
+    .conf-modal .conf-item span { color: var(--muted); }
+    .conf-modal .conf-item strong { color: var(--text); }
+    .btn-whatsapp {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: #25D366; color: #fff; border: none; border-radius: 12px;
+      padding: 14px 28px; font-size: 15px; font-weight: 700;
+      text-decoration: none; cursor: pointer; margin-top: 16px;
+      transition: opacity .2s;
+    }
+    .btn-whatsapp:hover { opacity: .9; }
+    .btn-cerrar-modal {
+      display: inline-block; margin-top: 12px; padding: 10px 24px;
+      background: transparent; border: 1px solid var(--border);
+      border-radius: 10px; color: var(--muted); font-size: 14px;
+      cursor: pointer; transition: border-color .2s, color .2s;
+    }
+    .btn-cerrar-modal:hover { border-color: var(--gold); color: var(--text); }
+
+    /* ── Inline Validation ───────────────────────────────────── */
+    .validation-msg {
+      display: block;
+      font-size: 11px;
+      margin-top: 4px;
+      min-height: 16px;
+      line-height: 1.4;
+    }
+    .validation-msg.error { color: var(--danger, #EF4444); }
+    .validation-msg.ok { color: var(--success, #22C55E); }
+  </style>
+
+  <!-- CONFIGURACION DEL TENANT (PRIMERO) -->
+  <script src="tenant/tenant.config.js"></script>
+
+  <!-- SUPABASE SDK + CLIENTE -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-config.js"></script>
+
+  <!-- ERP API -->
+  <script src="js/erp-api.js"></script>
+</head>
+<body>
+
+<!-- XSS Helper -->
+<script>
+function esc(str) {
+  const d = document.createElement('div');
+  d.textContent = String(str || '');
+  return d.innerHTML;
+}
+</script>
+
+<!-- LOADER GLOBAL -->
+<div class="loader" id="loader">
+  <div class="loader-spin"></div>
+  <p class="loader-txt" id="loader-txt">Cargando...</p>
+</div>
+
+<!-- TOAST -->
+<div class="toast-error" id="toast-error"></div>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="nav-brand">
+    <span class="nav-logo" id="nav-logo">🔧</span>
+    <span class="nav-nombre" id="nav-nombre">Taller Mecanico Pro</span>
+  </div>
+  <div class="nav-links">
+    <a class="nav-link" href="#servicios">Servicios</a>
+    <a class="nav-link" href="#reservar">Reservar</a>
+    <a class="nav-link" href="#estado-vehiculo">Estado</a>
+    <a class="nav-link" href="#ubicacion">Ubicacion</a>
+    <a class="nav-link" href="#contacto">Contacto</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-chip">🔧 Agenda online · Confirmacion instantanea</div>
+  <h1>Tu Taller,<br>a un click</h1>
+  <p class="hero-sub">Elige tu servicio, mecanico y horario. Diagnostico profesional. Confirmacion por email.</p>
+  <div class="hero-ctas">
+    <button class="btn-primary" onclick="document.getElementById('reservar').scrollIntoView({behavior:'smooth'})">
+      Agendar Ahora →
+    </button>
+    <button class="btn-secondary" onclick="document.getElementById('estado-vehiculo').scrollIntoView({behavior:'smooth'})">
+      Ver Estado de mi Auto
+    </button>
+  </div>
+</section>
+
+<!-- PANTALLA PRINCIPAL DE RESERVAS -->
+<div id="reservas-screen">
+
+  <!-- SECCION SERVICIOS (header) -->
+  <section id="servicios" style="max-width:1280px;margin:0 auto;padding:48px 24px 0">
+    <h2 style="font-size:clamp(22px,4vw,32px);font-weight:800;margin-bottom:8px">
+      Nuestros <span style="color:var(--gold-lt)">Servicios</span>
+    </h2>
+    <p style="color:var(--muted);margin-bottom:0">Selecciona el servicio que necesitas para comenzar tu agenda.</p>
+  </section>
+
+  <!-- LAYOUT RESERVAS -->
+  <section id="reservar" class="reservas-layout">
+
+    <!-- COLUMNA PRINCIPAL -->
+    <div class="reservas-main">
+
+      <!-- STEPPER -->
+      <div class="stepper" id="stepper" aria-label="Progreso de la reserva"></div>
+
+      <!-- WIZARD WRAP -->
+      <div class="wizard-wrap" id="wizard-wrap">
+
+        <!-- ══════════════════════════════════════════
+             PASO 1: SERVICIO (Dropdown con buscador)
+             ══════════════════════════════════════════ -->
+        <div class="paso" id="paso-1">
+          <div class="paso-header">
+            <div class="paso-titulo-num">Paso 1 de 5</div>
+            <div class="paso-titulo-texto">Que servicio necesitas?</div>
+          </div>
+
+          <!-- Dropdown buscable -->
+          <div class="srv-dropdown-wrap" id="servicios-grid">
+
+            <div class="srv-dropdown-btn" id="srv-dropdown-btn" onclick="SrvDropdown.toggle()">
+              <span id="srv-btn-text" style="color:var(--hint)">🔍 Buscar o seleccionar servicio...</span>
+              <span class="arrow">▼</span>
+            </div>
+
+            <div class="srv-dropdown-panel" id="srv-dropdown-panel">
+              <input
+                class="srv-search-input"
+                id="srv-search-input"
+                type="text"
+                placeholder="Escribe el nombre del servicio..."
+                autocomplete="off"
+                oninput="SrvDropdown.filtrar(this.value)"
+              >
+              <div class="srv-options" id="srv-options">
+                <div class="srv-empty">Cargando servicios...</div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Chip del servicio elegido -->
+          <div class="srv-selected-chip" id="srv-selected-chip">
+            <span>✅</span>
+            <span class="chip-name" id="chip-srv-nombre">—</span>
+            <span id="chip-srv-dur" style="color:var(--muted);font-size:12px"></span>
+            <span id="chip-srv-precio" style="font-weight:700"></span>
+            <span class="chip-clear" onclick="SrvDropdown.limpiar()" title="Cambiar servicio">✕</span>
+          </div>
+
+          <div class="paso-nav">
+            <div></div>
+            <button class="btn-siguiente" id="btn-siguiente-1" disabled onclick="Wizard.irA(2)">
+              Continuar →
+            </button>
+          </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════
+             PASO 2: MECANICO (Cards) + FECHA + VEHICULO
+             ══════════════════════════════════════════ -->
+        <div class="paso" id="paso-2">
+          <div class="paso-header">
+            <div class="paso-titulo-num">Paso 2 de 5</div>
+            <div class="paso-titulo-texto">Elige mecanico, fecha y datos del vehiculo</div>
+          </div>
+
+          <!-- Mechanic Cards -->
+          <div style="margin-bottom:20px">
+            <div class="sidebar-titulo" style="margin-bottom:10px" id="mecanico-label">Selecciona un mecanico</div>
+            <div class="mecanico-cards" id="empleados-chips-p2">
+              <p style="color:var(--muted);font-size:13px">Selecciona primero un servicio.</p>
+            </div>
+          </div>
+
+          <!-- Calendario -->
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;margin-bottom:16px">
+            <div class="sidebar-titulo" style="margin-bottom:12px">Selecciona una fecha</div>
+            <div id="calendario"></div>
+            <div id="fecha-display" style="text-align:center;margin-top:10px;font-size:13px;color:var(--gold);font-weight:600;min-height:18px"></div>
+          </div>
+
+          <!-- Datos del vehiculo -->
+          <div class="vehiculo-form">
+            <div class="vehiculo-form-titulo">🚗 Datos del vehiculo</div>
+            <div class="vehiculo-grid">
+              <div class="form-group" style="margin-bottom:0">
+                <label class="form-label">Patente</label>
+                <input class="form-input" id="inp-patente" type="text"
+                  placeholder="AB-CD-12" maxlength="8"
+                  oninput="this.value=this.value.toUpperCase(); ClienteValidation.validarPatente(this)"
+                  autocomplete="off">
+                <span class="validation-msg" id="val-patente"></span>
+              </div>
+              <div class="form-group" style="margin-bottom:0">
+                <label class="form-label">Marca / Modelo</label>
+                <input class="form-input" id="inp-modelo" type="text"
+                  placeholder="Ej: Toyota Corolla 2020"
+                  autocomplete="off">
+              </div>
+              <div class="form-group" style="margin-bottom:0">
+                <label class="form-label">Kilometraje</label>
+                <input class="form-input" id="inp-km" type="number"
+                  placeholder="Ej: 75000" min="0" max="9999999"
+                  autocomplete="off">
+              </div>
+            </div>
+          </div>
+
+          <div class="paso-nav">
+            <button class="btn-volver" onclick="Wizard.irA(1)">← Volver</button>
+            <button class="btn-siguiente" id="btn-siguiente-2" disabled onclick="Wizard.irA(3)">
+              Continuar →
+            </button>
+          </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════
+             PASO 3: HORARIO
+             ══════════════════════════════════════════ -->
+        <div class="paso" id="paso-3">
+          <div class="paso-header">
+            <div class="paso-titulo-num">Paso 3 de 5</div>
+            <div class="paso-titulo-texto">Selecciona el bloque horario</div>
+          </div>
+          <div id="slots-container">
+            <div class="slots-loading">
+              <div class="slot-spinner"></div>
+              <p>Verificando disponibilidad...</p>
+            </div>
+          </div>
+          <div class="paso-nav">
+            <button class="btn-volver" onclick="Wizard.irA(2)">← Volver</button>
+            <button class="btn-siguiente" id="btn-siguiente-3" disabled onclick="Wizard.irA(4)">
+              Continuar →
+            </button>
+          </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════
+             PASO 4: DATOS DEL CLIENTE
+             ══════════════════════════════════════════ -->
+        <div class="paso" id="paso-4">
+          <div class="paso-header">
+            <div class="paso-titulo-num">Paso 4 de 5</div>
+            <div class="paso-titulo-texto">Tus datos de contacto</div>
+          </div>
+
+          <div class="cliente-form-card">
+            <div class="cliente-form-resumen" id="p4-resumen"></div>
+
+            <div class="form-2col">
+              <div class="form-group">
+                <label class="form-label">Nombre completo *</label>
+                <input class="form-input" id="inp-nombre" type="text"
+                  placeholder="Juan Perez" autocomplete="name"
+                  oninput="ClienteValidation.validarNombre(this)">
+                <span class="validation-msg" id="val-nombre"></span>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Telefono</label>
+                <input class="form-input" id="inp-tel" type="tel"
+                  placeholder="+56 9 1234 5678" autocomplete="tel"
+                  oninput="ClienteValidation.validarTelefono(this)">
+                <span class="validation-msg" id="val-tel"></span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email *</label>
+              <input class="form-input" id="inp-email" type="email"
+                placeholder="tu@email.com" autocomplete="email"
+                oninput="ClienteValidation.validarEmailInput(this)">
+              <span class="validation-msg" id="val-email"></span>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Notas / Descripcion del problema (opcional)</label>
+              <textarea class="form-input form-textarea" id="inp-notas"
+                placeholder="Cuentanos que sintoma presenta tu vehiculo..."></textarea>
+            </div>
+          </div>
+
+          <div class="paso-nav">
+            <button class="btn-volver" onclick="Wizard.irA(3)">← Volver</button>
+            <button class="btn-siguiente" id="btn-siguiente-4" onclick="Wizard.irA(5)">
+              Continuar →
+            </button>
+          </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════
+             PASO 5: RETIRO + CONFIRMAR
+             ══════════════════════════════════════════ -->
+        <div class="paso" id="paso-5">
+          <div class="paso-header">
+            <div class="paso-titulo-num">Paso 5 de 5</div>
+            <div class="paso-titulo-texto">Retiramos tu vehiculo?</div>
+          </div>
+          <p style="color:var(--muted);font-size:14px;margin-bottom:20px;line-height:1.6">
+            Podemos ir a buscar tu vehiculo a tu domicilio y entregartelo listo.
+            Este servicio tiene un costo adicional.
+          </p>
+
+          <div class="retiro-card" id="card-retiro-si" onclick="Wizard.toggleRetiro(true)">
+            <div class="retiro-card-header">
+              <div class="retiro-icon">🚗</div>
+              <div style="flex:1">
+                <h3>Si, retiro a domicilio</h3>
+                <p>Vamos a buscar tu vehiculo y te lo entregamos listo cuando este.</p>
+                <span class="retiro-badge" id="retiro-precio-label">+ $15.000</span>
+              </div>
+              <div class="retiro-radio" id="radio-si"></div>
+            </div>
+            <div class="retiro-direccion-field">
+              <label class="form-label" style="margin-top:12px">Direccion de retiro *</label>
+              <input class="form-input" id="inp-retiro-dir"
+                placeholder="Av. Ejemplo 1234, Depto 5, Santiago"
+                onclick="event.stopPropagation()">
+            </div>
+          </div>
+
+          <div class="retiro-card seleccionado" id="card-retiro-no" onclick="Wizard.toggleRetiro(false)">
+            <div class="retiro-card-header">
+              <div class="retiro-icon">🏪</div>
+              <div style="flex:1">
+                <h3>No, llevare el vehiculo al taller</h3>
+                <p>Traere mi vehiculo directamente al taller en el horario agendado.</p>
+                <span class="retiro-badge" style="background:rgba(34,197,94,.1);color:var(--success);border-color:rgba(34,197,94,.2)">Sin cargo extra</span>
+              </div>
+              <div class="retiro-radio seleccionado" id="radio-no"
+                style="border-color:var(--gold);background:var(--gold);box-shadow:inset 0 0 0 4px var(--card)"></div>
+            </div>
+          </div>
+
+          <div id="p5-resumen-final" style="margin-top:16px"></div>
+
+          <p style="font-size:11px;color:var(--hint);text-align:center;margin-top:16px;line-height:1.6">
+            Al agendar aceptas el tratamiento de tus datos personales para la gestion del servicio,
+            conforme a la Ley 19.628 de Proteccion de Datos.
+          </p>
+
+          <div class="paso-nav">
+            <button class="btn-volver" onclick="Wizard.irA(4)">← Volver</button>
+            <button class="btn-siguiente" id="btn-confirmar"
+              style="background:linear-gradient(135deg,var(--success),#16A34A);max-width:300px"
+              onclick="Wizard.confirmarReserva()">
+              ✅ Confirmar Reserva
+            </button>
+          </div>
+        </div>
+
+      </div><!-- /wizard-wrap -->
+    </div>
+
+    <!-- SIDEBAR -->
+    <div class="reservas-sidebar">
+      <div class="sidebar-card">
+        <div class="sidebar-titulo">Tu seleccion</div>
+        <div id="resumen-seleccion">
+          <p class="resumen-placeholder">Selecciona un servicio para comenzar.</p>
+        </div>
+      </div>
+
+      <div class="sidebar-card" id="contacto">
+        <div class="sidebar-titulo">Informacion</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.8" id="info-sidebar"></div>
+      </div>
+    </div>
+
+  </section>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     SECCION: CONSULTA ESTADO DEL VEHICULO
+     ════════════════════════════════════════════════════════════ -->
+<section id="estado-vehiculo">
+  <h2 style="font-size:clamp(20px,3.5vw,28px);font-weight:800;margin-bottom:8px">
+    Estado de tu <span style="color:var(--gold-lt)">Vehiculo</span>
+  </h2>
+  <p style="color:var(--muted);margin-bottom:0;font-size:14px">
+    Ingresa la patente y el codigo de tu reserva para consultar el estado en tiempo real.
+  </p>
+
+  <div class="estado-card" style="margin-top:20px">
+    <div class="estado-form-row">
+      <input
+        id="est-patente"
+        type="text"
+        placeholder="Patente  ej: ABCD12"
+        maxlength="8"
+        oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')"
+        style="text-transform:uppercase;font-weight:700;letter-spacing:2px"
+      >
+      <input
+        id="est-codigo"
+        type="text"
+        placeholder="Codigo de reserva  ej: RES-01001  (opcional)"
+        maxlength="12"
+        oninput="this.value=this.value.toUpperCase()"
+      >
+      <button class="btn-consultar" onclick="consultarEstadoVehiculo()">
+        🔍 Consultar
+      </button>
+    </div>
+
+    <div id="estado-resultado"></div>
+  </div>
+</section>
+
+<!-- SECCION UBICACION -->
+<section id="ubicacion" style="max-width:1280px;margin:48px auto 0;padding:0 24px">
+  <h2 style="font-size:clamp(22px,4vw,32px);font-weight:800;margin-bottom:8px">
+    Donde <span style="color:var(--gold-lt)">Encontrarnos?</span>
+  </h2>
+  <p style="color:var(--muted);margin-bottom:20px">Facil acceso. Estacionamiento disponible.</p>
+  <div id="mapa-leaflet" style="height:360px;border-radius:16px;overflow:hidden;border:1px solid var(--border);box-shadow:0 4px 20px rgba(0,0,0,.15)"></div>
+  <div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:20px">
+    <div style="flex:1;min-width:200px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;font-size:14px;color:var(--muted)">
+      📍 <strong id="ub-dir">—</strong>
+    </div>
+    <div style="flex:1;min-width:200px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;font-size:14px;color:var(--muted)">
+      ⏰ <strong id="ub-horario">—</strong>
+    </div>
+    <a id="ub-wsp" href="#" target="_blank" rel="noopener"
+      style="flex:1;min-width:200px;background:#25D366;border-radius:12px;padding:16px;font-size:14px;color:#fff;font-weight:600;text-decoration:none;display:flex;align-items:center;gap:8px">
+      💬 Escribir por WhatsApp
+    </a>
+    <a id="ub-ig" href="#" target="_blank" rel="noopener"
+      style="flex:1;min-width:200px;background:linear-gradient(135deg,#E1306C,#833AB4);border-radius:12px;padding:16px;font-size:14px;color:#fff;font-weight:600;text-decoration:none;display:flex;align-items:center;gap:8px">
+      📸 Ver Instagram
+    </a>
+  </div>
+</section>
+
+<!-- CONFIRMATION MODAL (replaces full-page confirmation) -->
+<div class="conf-modal-back" id="conf-modal-back">
+  <div class="conf-modal">
+    <div class="conf-icon">🎉</div>
+    <h2>Reserva Confirmada!</h2>
+    <p style="color:var(--muted);margin-bottom:8px">Tu numero de orden es:</p>
+    <div class="conf-id" id="conf-id">—</div>
+    <div id="conf-vehiculo-badge" class="conf-vehiculo" style="display:none">—</div>
+    <p style="color:var(--muted);font-size:14px;margin-bottom:16px">
+      Recibiras un email de confirmacion en los proximos minutos.
+    </p>
+    <div class="conf-detalles">
+      <div class="conf-item"><span>Cliente</span><strong id="conf-nombre">—</strong></div>
+      <div class="conf-item"><span>Servicio</span><strong id="conf-srv">—</strong></div>
+      <div class="conf-item"><span>Mecanico</span><strong id="conf-mecanico">—</strong></div>
+      <div class="conf-item"><span>Fecha</span><strong id="conf-fecha">—</strong></div>
+      <div class="conf-item"><span>Hora</span><strong id="conf-hora">—</strong></div>
+      <div class="conf-item" id="conf-retiro-row" style="display:none">
+        <span>Retiro domicilio</span><strong id="conf-retiro">—</strong>
+      </div>
+    </div>
+
+    <a class="btn-whatsapp" id="conf-whatsapp-btn" href="#" target="_blank" rel="noopener">
+      💬 Confirmar por WhatsApp
+    </a>
+
+    <!-- ── ENCUESTA DE SATISFACCION ── -->
+    <div class="survey-section" id="survey-section">
+      <div class="survey-title">Como calificarias tu experiencia al agendar?</div>
+      <div class="survey-subtitle">Tu opinion nos ayuda a mejorar el servicio</div>
+      <div class="survey-btns">
+        <button class="survey-btn positivo" onclick="Survey.responder('positivo', this)" title="Excelente">
+          👍
+        </button>
+        <button class="survey-btn negativo" onclick="Survey.responder('negativo', this)" title="Mejorable">
+          👎
+        </button>
+      </div>
+      <div class="survey-comment" id="survey-comment" style="display:none">
+        <textarea id="survey-texto" placeholder="Algo que quieras comentar? (opcional)" rows="2"></textarea>
+        <button class="btn-primary" style="margin-top:8px;max-width:200px" onclick="Survey.enviar()">
+          Enviar comentario
+        </button>
+      </div>
+      <div class="survey-thanks" id="survey-thanks">
+        Gracias por tu opinion! Nos ayuda a mejorar cada dia. 🙏
+      </div>
+    </div>
+
+    <button class="btn-cerrar-modal" onclick="ConfModal.cerrar()">
+      Cerrar
+    </button>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-nombre">🔧 <span id="footer-nombre">Taller Mecanico Pro</span></div>
+  <div class="footer-info" id="footer-info"></div>
+</footer>
+
+<!-- ══════════════════════════════════════════════════════════════
+     SCRIPTS
+     ════════════════════════════════════════════════════════════ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="js/calendar.js"></script>
+<script src="js/app.js"></script>
+
+<!-- ══ INLINE VALIDATION ══════════════════════════════════════ -->
+<script>
+const ClienteValidation = {
+  validarNombre(el) {
+    const span = document.getElementById('val-nombre');
+    if (!span) return;
+    const v = el.value.trim();
+    if (!v) { span.textContent = ''; span.className = 'validation-msg'; return; }
+    if (v.length < 2) {
+      span.textContent = 'Minimo 2 caracteres';
+      span.className = 'validation-msg error';
+    } else {
+      span.textContent = '✓';
+      span.className = 'validation-msg ok';
+    }
+  },
+  validarTelefono(el) {
+    const span = document.getElementById('val-tel');
+    if (!span) return;
+    const v = el.value.trim();
+    if (!v) { span.textContent = ''; span.className = 'validation-msg'; return; }
+    if (typeof validarTelefonoChile === 'function' && validarTelefonoChile(v)) {
+      span.textContent = '✓';
+      span.className = 'validation-msg ok';
+    } else {
+      span.textContent = 'Formato: +56 9 XXXX XXXX';
+      span.className = 'validation-msg error';
+    }
+  },
+  validarEmailInput(el) {
+    const span = document.getElementById('val-email');
+    if (!span) return;
+    const v = el.value.trim();
+    if (!v) { span.textContent = ''; span.className = 'validation-msg'; return; }
+    if (typeof validarEmail === 'function' && validarEmail(v)) {
+      span.textContent = '✓';
+      span.className = 'validation-msg ok';
+    } else {
+      span.textContent = 'Email no valido';
+      span.className = 'validation-msg error';
+    }
+  },
+  validarPatente(el) {
+    const span = document.getElementById('val-patente');
+    if (!span) return;
+    const v = el.value.trim();
+    if (!v) { span.textContent = ''; span.className = 'validation-msg'; return; }
+    if (typeof validarPatenteChilena === 'function' && validarPatenteChilena(v)) {
+      span.textContent = '✓';
+      span.className = 'validation-msg ok';
+    } else {
+      span.textContent = 'Formato: ABCD12 o AB-CD-12';
+      span.className = 'validation-msg error';
+    }
+  }
+};
+</script>
+
+<!-- ══ CONFIRMATION MODAL CONTROLLER ═══════════════════════════ -->
+<script>
+const ConfModal = {
+  abrir(datos) {
+    // datos: { codigo, nombre, servicio, mecanico, fecha, hora, retiro, retiroDir, patente }
+    const modal = document.getElementById('conf-modal-back');
+    if (!modal) return;
+
+    document.getElementById('conf-id').textContent = datos.codigo || '—';
+    document.getElementById('conf-nombre').textContent = datos.nombre || '—';
+    document.getElementById('conf-srv').textContent = datos.servicio || '—';
+    document.getElementById('conf-mecanico').textContent = datos.mecanico || '—';
+    document.getElementById('conf-fecha').textContent = datos.fecha || '—';
+    document.getElementById('conf-hora').textContent = datos.hora || '—';
+
+    const retiroRow = document.getElementById('conf-retiro-row');
+    if (datos.retiro && retiroRow) {
+      retiroRow.style.display = '';
+      document.getElementById('conf-retiro').textContent = datos.retiroDir || 'Si';
+    } else if (retiroRow) {
+      retiroRow.style.display = 'none';
+    }
+
+    const vBadge = document.getElementById('conf-vehiculo-badge');
+    if (datos.patente && vBadge) {
+      vBadge.textContent = datos.patente;
+      vBadge.style.display = '';
+    } else if (vBadge) {
+      vBadge.style.display = 'none';
+    }
+
+    // WhatsApp link
+    const waBtn = document.getElementById('conf-whatsapp-btn');
+    if (waBtn) {
+      const msg = encodeURIComponent(
+        'Hola! Confirmo mi reserva ' + (datos.codigo || '') +
+        ' para ' + (datos.servicio || '') +
+        ' el ' + (datos.fecha || '') + ' a las ' + (datos.hora || '') + '. Gracias!'
+      );
+      waBtn.href = 'https://wa.me/56995148887?text=' + msg;
+    }
+
+    modal.classList.add('open');
+  },
+
+  cerrar() {
+    const modal = document.getElementById('conf-modal-back');
+    if (modal) modal.classList.remove('open');
+    if (typeof Wizard !== 'undefined' && Wizard.nuevaReserva) {
+      Wizard.nuevaReserva();
+    }
+  }
+};
+</script>
+
+<!-- ══ DROPDOWN DE SERVICIOS ═══════════════════════════════════ -->
+<script>
+const SrvDropdown = {
+  abierto:    false,
+  servicios:  [],
+  seleccionado: null,
+
+  // Llamado por app.js despues de cargar los servicios
+  poblar(servicios) {
+    this.servicios = servicios || [];
+    this._renderOpciones('');
+    // Auto-abrir el panel cuando los servicios estan listos
+    if (this.servicios.length > 0 && !this.seleccionado) {
+      this.abierto = true;
+      document.getElementById('srv-dropdown-btn')?.classList.add('open');
+      document.getElementById('srv-dropdown-panel')?.classList.add('open');
+      const txt = document.getElementById('srv-btn-text');
+      if (txt) {
+        txt.textContent = `🔍 Buscar o seleccionar servicio... (${this.servicios.length} disponibles)`;
+        txt.style.color = '';
+      }
+    }
+  },
+
+  toggle() {
+    this.abierto = !this.abierto;
+    const btn   = document.getElementById('srv-dropdown-btn');
+    const panel = document.getElementById('srv-dropdown-panel');
+    btn.classList.toggle('open', this.abierto);
+    panel.classList.toggle('open', this.abierto);
+    if (this.abierto) {
+      const inp = document.getElementById('srv-search-input');
+      if (inp) { inp.value = ''; inp.focus(); this._renderOpciones(''); }
+    }
+  },
+
+  filtrar(query) {
+    this._renderOpciones(query.trim().toLowerCase());
+  },
+
+  _renderOpciones(q) {
+    const cont = document.getElementById('srv-options');
+    if (!cont) return;
+    const lista = q
+      ? this.servicios.filter(s =>
+          s.nombre.toLowerCase().includes(q) ||
+          (s.categoria || '').toLowerCase().includes(q)
+        )
+      : this.servicios;
+
+    if (!lista.length) {
+      cont.innerHTML = '<div class="srv-empty">No se encontraron servicios.</div>';
+      return;
+    }
+
+    const porCat = {};
+    lista.forEach(s => {
+      const cat = s.categoria || 'Servicios';
+      (porCat[cat] = porCat[cat] || []).push(s);
+    });
+
+    let html = '';
+    Object.keys(porCat).forEach(cat => {
+      html += `<div class="srv-opt-cat">${esc(cat)}</div>`;
+      porCat[cat].forEach(s => {
+        const sel = this.seleccionado?.id === s.id ? 'selected' : '';
+        html += `
+          <div class="srv-opt-item ${sel}" onclick="SrvDropdown.elegir('${s.id}')" data-id="${s.id}">
+            <span class="srv-opt-name">${esc(s.nombre)}</span>
+            <span class="srv-opt-meta">
+              <span>⏱ ${esc(s.duracion)} min</span>
+              <span class="srv-opt-price">$${(s.precio||0).toLocaleString('es-CL')}</span>
+            </span>
+          </div>`;
+      });
+    });
+    cont.innerHTML = html;
+  },
+
+  elegir(id) {
+    const srv = this.servicios.find(s => s.id === id);
+    if (!srv) return;
+    this.seleccionado = srv;
+
+    // Actualizar boton
+    const btn = document.getElementById('srv-dropdown-btn');
+    const txt = document.getElementById('srv-btn-text');
+    if (txt) {
+      txt.style.color = '';
+      txt.textContent = srv.nombre + '  —  ' +
+        srv.duracion + ' min  ·  $' + (srv.precio||0).toLocaleString('es-CL');
+    }
+
+    // Mostrar chip
+    const chip = document.getElementById('srv-selected-chip');
+    const chipN = document.getElementById('chip-srv-nombre');
+    const chipD = document.getElementById('chip-srv-dur');
+    const chipP = document.getElementById('chip-srv-precio');
+    if (chip)  chip.classList.add('visible');
+    if (chipN) chipN.textContent = srv.nombre;
+    if (chipD) chipD.textContent = srv.duracion + ' min';
+    if (chipP) chipP.textContent = '$' + (srv.precio||0).toLocaleString('es-CL');
+
+    // Cerrar dropdown
+    this.abierto = false;
+    btn.classList.remove('open');
+    document.getElementById('srv-dropdown-panel').classList.remove('open');
+
+    // Notificar al Wizard
+    if (typeof Wizard !== 'undefined') {
+      Wizard._onServicioSelected(id);
+    }
+  },
+
+  limpiar() {
+    this.seleccionado = null;
+    const txt = document.getElementById('srv-btn-text');
+    if (txt) { txt.style.color = 'var(--hint)'; txt.textContent = '🔍 Buscar o seleccionar servicio...'; }
+    const chip = document.getElementById('srv-selected-chip');
+    if (chip) chip.classList.remove('visible');
+    this._renderOpciones('');
+
+    if (typeof Wizard !== 'undefined') {
+      Wizard.servicioElegido = null;
+      Wizard._habilitarSiguiente && Wizard._habilitarSiguiente(0);
+      const btn1 = document.getElementById('btn-siguiente-1');
+      if (btn1) btn1.disabled = true;
+      Wizard._actualizarResumen && Wizard._actualizarResumen();
+    }
+  }
+};
+
+// Cerrar dropdown al hacer click fuera
+document.addEventListener('click', (e) => {
+  if (SrvDropdown.abierto && !e.target.closest('.srv-dropdown-wrap')) {
+    SrvDropdown.abierto = false;
+    document.getElementById('srv-dropdown-btn')?.classList.remove('open');
+    document.getElementById('srv-dropdown-panel')?.classList.remove('open');
+  }
+});
+</script>
+
+<!-- ══ CONSULTA ESTADO DEL VEHICULO ════════════════════════════ -->
+<script>
+async function consultarEstadoVehiculo() {
+  const patente = document.getElementById('est-patente')?.value.trim();
+  const codigo  = document.getElementById('est-codigo')?.value.trim();
+  const cont    = document.getElementById('estado-resultado');
+  if (!patente) { alert('Ingresa la patente del vehiculo.'); return; }
+
+  cont.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted)">🔍 Buscando informacion...</div>';
+
+  try {
+    const [reserva, garantias] = await Promise.all([
+      ERP.getEstadoActualPatente(patente, codigo),
+      ERP.getGarantiasPatente(patente)
+    ]);
+
+    if (!reserva) {
+      cont.innerHTML = `
+        <div style="padding:24px;text-align:center;color:var(--muted)">
+          <div style="font-size:36px;margin-bottom:8px">🔎</div>
+          <div style="font-size:15px">No se encontro ninguna reserva activa para la patente <strong style="color:var(--gold)">${esc(patente)}</strong>.</div>
+          <div style="font-size:13px;margin-top:8px">Si tienes una reserva, verifica que la patente sea correcta.</div>
+        </div>`;
+      return;
+    }
+
+    const badgeMap = {
+      'Confirmada':     'badge-confirmada',
+      'En curso':       'badge-en-curso',
+      'Completada':     'badge-completada',
+      'Cancelada':      'badge-cancelada',
+      'Pendiente':      'badge-confirmada',
+      'No se presento': 'badge-cancelada'
+    };
+    const badgeCls = badgeMap[reserva.estado] || 'badge-confirmada';
+
+    // Garantia vigente
+    const garVigente = garantias.find(g => g.estado === 'Vigente');
+
+    let garHtml = '';
+    if (garVigente) {
+      garHtml = `
+        <div class="garantia-chip garantia-vigente">
+          ✅ Garantia vigente hasta ${garVigente.fecha_fin ? new Date(garVigente.fecha_fin + 'T12:00:00').toLocaleDateString('es-CL') : '—'}
+        </div>`;
+    } else if (garantias.length) {
+      const garVen = garantias[0];
+      garHtml = `
+        <div class="garantia-chip garantia-vencida">
+          ⚠️ Garantia vencida el ${garVen.fecha_fin ? new Date(garVen.fecha_fin + 'T12:00:00').toLocaleDateString('es-CL') : '—'}
+        </div>`;
+    }
+
+    let diagHtml = '';
+    if (reserva.diagnostico) {
+      diagHtml = `
+        <div style="margin-top:10px;padding:10px 14px;background:rgba(255,251,240,.05);border:1px solid rgba(201,168,76,.2);border-radius:8px;font-size:13px;color:var(--muted)">
+          <span style="font-weight:600;color:var(--gold)">Diagnostico:</span> ${esc(reserva.diagnostico)}
+        </div>`;
+    }
+
+    let autHtml = '';
+    if (reserva.autorizacion_enviada) {
+      autHtml = `
+        <div style="margin-top:8px;font-size:12px;color:${reserva.autorizado ? '#22C55E' : '#F59E0B'}">
+          ${reserva.autorizado ? '✅ Servicio autorizado por el cliente' : '⏳ Pendiente de autorizacion del cliente'}
+        </div>`;
+    }
+
+    cont.innerHTML = `
+      <div style="margin-top:4px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+          <span style="font-size:22px;font-weight:800;letter-spacing:2px;color:var(--gold)">${esc(patente)}</span>
+          <span class="estado-badge ${esc(badgeCls)}">${esc(reserva.estado)}</span>
+          <span style="font-size:13px;color:var(--muted);margin-left:auto">Orden: <strong style="color:var(--text)">${esc(reserva.codigo)}</strong></span>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:16px">
+          <div style="background:var(--card,#1A2338);border:1px solid var(--border);border-radius:10px;padding:12px 14px">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:4px">Servicio</div>
+            <div style="font-size:14px;font-weight:600">${esc(reserva.servicio_nombre)}</div>
+          </div>
+          <div style="background:var(--card,#1A2338);border:1px solid var(--border);border-radius:10px;padding:12px 14px">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:4px">Mecanico</div>
+            <div style="font-size:14px;font-weight:600">${esc(reserva.empleado_nombre)}</div>
+          </div>
+          <div style="background:var(--card,#1A2338);border:1px solid var(--border);border-radius:10px;padding:12px 14px">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:4px">Fecha / Hora</div>
+            <div style="font-size:14px;font-weight:600">${reserva.fecha ? new Date(reserva.fecha + 'T12:00:00').toLocaleDateString('es-CL') : '—'} ${esc(reserva.hora_inicio)}</div>
+          </div>
+        </div>
+
+        ${diagHtml}
+        ${autHtml}
+        ${garHtml}
+      </div>`;
+
+  } catch (e) {
+    cont.innerHTML = `<div style="padding:16px;color:var(--danger)">Error al consultar: ${esc(e.message)}</div>`;
+  }
+}
+</script>
+
+<!-- ══ ENCUESTA DE SATISFACCION ════════════════════════════════ -->
+<script>
+const Survey = {
+  reservaId:  null,
+  clienteId:  null,
+  patente:    null,
+  respuesta:  null,
+
+  init(reservaId, clienteId, patente) {
+    this.reservaId = reservaId;
+    this.clienteId = clienteId;
+    this.patente   = patente;
+    this.respuesta = null;
+    const sec = document.getElementById('survey-section');
+    if (sec) sec.style.display = '';
+    const thx = document.getElementById('survey-thanks');
+    if (thx) thx.style.display = 'none';
+    const com = document.getElementById('survey-comment');
+    if (com) com.style.display = 'none';
+    document.querySelectorAll('.survey-btn').forEach(b => b.classList.remove('selected'));
+  },
+
+  responder(resp, btn) {
+    this.respuesta = resp;
+    document.querySelectorAll('.survey-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    const com = document.getElementById('survey-comment');
+    if (com) com.style.display = 'block';
+  },
+
+  async enviar() {
+    if (!this.respuesta || !this.reservaId) return;
+    const comentario = document.getElementById('survey-texto')?.value.trim() || '';
+    try {
+      await ERP.registrarEncuesta({
+        reservaId:  this.reservaId,
+        clienteId:  this.clienteId,
+        patente:    this.patente,
+        respuesta:  this.respuesta,
+        comentario
+      });
+    } catch (e) {
+      console.warn('Encuesta:', e.message);
+    }
+    const com = document.getElementById('survey-comment');
+    if (com) com.style.display = 'none';
+    const thx = document.getElementById('survey-thanks');
+    if (thx) thx.style.display = 'block';
+  }
+};
+</script>
+
+<!-- ══ TENANT DATA + MAPA ════════════════════════════════════════ -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  function cargarDatos() {
+    if (typeof window.TENANT === 'undefined') { setTimeout(cargarDatos, 100); return; }
+    const cfg = window.TENANT;
+
+    var navNombre = document.getElementById('nav-nombre');
+    if (navNombre) navNombre.textContent = cfg.nombre || 'Taller';
+
+    var infoEl = document.getElementById('info-sidebar');
+    if (infoEl) {
+      infoEl.innerHTML =
+        '<p>📍 ' + esc(cfg.direccion || '—') + '</p>' +
+        '<p>📞 <a href="tel:' + esc(cfg.telefono||'') + '" style="color:var(--gold)">' + esc(cfg.telefono||'—') + '</a></p>' +
+        '<p>⏰ ' + esc(cfg.horarioPublico || 'Lun–Vie 8:00–18:00') + '</p>' +
+        '<p>📧 <a href="mailto:' + esc(cfg.email||'') + '" style="color:var(--gold)">' + esc(cfg.email||'—') + '</a></p>' +
+        '<p>💬 <a href="' + esc(cfg.whatsapp||'#') + '" target="_blank" rel="noopener" style="color:#25D366">WhatsApp</a></p>';
+    }
+
+    var fn = document.getElementById('footer-nombre');
+    var fi = document.getElementById('footer-info');
+    if (fn) fn.textContent = cfg.nombre || 'Taller';
+    if (fi) fi.innerHTML = esc(cfg.direccion||'') + ' · ' + esc(cfg.telefono||'') + '<br>' + esc(cfg.horarioPublico||'') + ' · ' + esc(cfg.email||'');
+
+    var ubDir = document.getElementById('ub-dir');
+    var ubH   = document.getElementById('ub-horario');
+    var ubW   = document.getElementById('ub-wsp');
+    var ubIg  = document.getElementById('ub-ig');
+    if (ubDir) ubDir.textContent = cfg.direccion || '—';
+    if (ubH)   ubH.textContent   = cfg.horarioPublico || 'Lun–Vie 8:00–18:00';
+    if (ubW)   ubW.href          = cfg.whatsapp || '#';
+    if (ubIg)  ubIg.href         = cfg.instagram || '#';
+
+    if (cfg.logoUrl) {
+      var navLogo = document.getElementById('nav-logo');
+      if (navLogo) {
+        navLogo.innerHTML = '<img src="' + esc(cfg.logoUrl) + '" alt="' + esc(cfg.nombre||'') + '"' +
+          ' style="height:38px;width:38px;border-radius:50%;object-fit:cover;border:2px solid var(--gold)">';
+      }
+    }
+
+    if (cfg.lat && cfg.lng) {
+      try {
+        var mapa = L.map('mapa-leaflet', { zoomControl: true }).setView([cfg.lat, cfg.lng], 16);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>', maxZoom: 19
+        }).addTo(mapa);
+        var icon = L.divIcon({
+          html: '<div style="background:#E05C1A;width:36px;height:36px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4)"></div>' +
+                '<span style="position:absolute;top:6px;left:8px;font-size:16px;transform:rotate(45deg)">🔧</span>',
+          className:'', iconSize:[36,36], iconAnchor:[18,36], popupAnchor:[0,-40]
+        });
+        L.marker([cfg.lat, cfg.lng], { icon })
+          .addTo(mapa)
+          .bindPopup('<strong>' + esc(cfg.nombre||'') + '</strong><br>' + esc(cfg.direccion||''))
+          .openPopup();
+      } catch(e) {
+        var m = document.getElementById('mapa-leaflet');
+        if (m) m.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:14px">📍 ' + esc(cfg.direccion||'—') + '</div>';
+      }
+    } else {
+      var m2 = document.getElementById('mapa-leaflet');
+      if (m2) m2.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:14px">📍 ' + esc(cfg.direccion||'Direccion no disponible') + '</div>';
+    }
+  }
+  cargarDatos();
+});
+</script>
+</body>
+</html>
