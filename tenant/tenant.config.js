@@ -33,7 +33,7 @@ window.TENANT = {
   lat:          -33.4690056,
   lng:          -70.6372465,
 
-  logoUrl:      'https://github.com/voycontigolicencia-cmyk/barber/blob/main/barberialogo2.png?raw=true',
+  logoUrl:      'https://res.cloudinary.com/dzrsht5kg/image/upload/v1776280434/juancars_saf4ux.png',
 
   // Paleta visual
   colorPrimario:    '#E05C1A',
