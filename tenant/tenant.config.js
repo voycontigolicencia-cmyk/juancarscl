@@ -71,7 +71,7 @@ window.TENANT = {
   retiroLabel:    'Retiro y entrega a domicilio',
 
   // -- INTEGRACIONES (necesarias para notificaciones al crear reserva) --
-  appsScriptUrl:  'https://script.google.com/macros/s/AKfycbxefkecaGWd7E3fu05Gvf6CwjTrD-tp35IoVGCmaqIWME3GbHWUFwpIQqUlpf_I1zBw/exec',
+  appsScriptUrl:  'https://script.google.com/macros/s/AKfycbxKy-acwQAGqd3TASb1O22fwgSVcKCZyym-GqRHhvMOKloNA9vUKA6Spi_yqar01DxrLA/exec',
   appsScriptMode: 'hybrid',
   webhookSecret:  'Javiteamo'
 
